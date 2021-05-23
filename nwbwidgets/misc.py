@@ -334,38 +334,6 @@ class PSTHWidget(widgets.VBox):
 
         main_fig = interactive_output(self.update, self.controls)
 
-        electrodes = self.get_electrodes()
-        units_data = units.id.data[:]
-        grid_fig = go.FigureWidget(
-            [
-                go.Scatter(
-                    x=electrodes.rel_x[units_data],
-                    y=electrodes.rel_y[units_data],
-                    mode="markers",
-                    text=[f"Unit ID: {x}" for x in units_data]
-                )
-            ]
-        )
-        scatter = grid_fig.data[0]
-
-        colors = np.array(["#a3a7e4"] * nunits)
-        scatter.marker.color = colors
-        size = np.array([10] * nunits)
-        scatter.marker.size = size
-
-        def update_point(trace, points, selector):
-            n_points = len(scatter.marker.color)
-            c = ["#a3a7e4"] * n_points
-            s = [10] * n_points
-            my_point = points.point_inds[0]
-            c[my_point] = '#bae2be'
-            s[my_point] = 15
-            with grid_fig.batch_update():
-                scatter.marker.color = c
-                scatter.marker.size = s
-        scatter.on_click(update_point)
-        grid_fig.layout.hovermode = "closest"
-
         self.children = [
             widgets.HBox(
                 [
@@ -390,12 +358,7 @@ class PSTHWidget(widgets.VBox):
                     ),
                 ]
             ),
-            widgets.HBox(
-                [
-                    main_fig,
-                    grid_fig
-                ]
-            )
+            main_fig,
         ]
 
     def get_trials(self):

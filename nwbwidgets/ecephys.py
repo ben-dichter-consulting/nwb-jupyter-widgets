@@ -181,3 +181,52 @@ class ElectricalSeriesWidget(BaseGroupedTraceWidget):
             foreign_group_and_sort_controller=foreign_group_and_sort_controller,
             **kwargs
         )
+
+
+class ElectrodePositionSelector(widgets.VBox):
+
+    def update_point(self, trace, points, selector):
+        n_points = len(self.scatter.marker.color)
+        c = ["#a3a7e4"] * n_points
+        s = [10] * n_points
+        my_point = points.point_inds[0]
+        c[my_point] = "#bae2be"
+        s[my_point] = 15
+        with self.fig.batch_update():
+            self.scatter.marker.color = c
+            self.scatter.marker.size = s
+
+    def __init__(self, electrodes):
+        super().__init__()
+        x = electrodes["rel_x"].data[:]
+        y = electrodes["rel_y"].data[:]
+        n_electrodes = len(x)
+
+        scatter_kwargs = dict(x=x, y=y, mode="markers")
+
+        self.fig = go.FigureWidget([go.Scatter(**scatter_kwargs)])
+        self.scatter = self.fig.data[0]
+
+        colors = np.array(["#a3a7e4"] * n_electrodes)
+        colors[0] = "#bae2be"
+        self.scatter.marker.color = colors
+        size = np.array([10] * n_electrodes)
+        size[0] = 15
+        self.scatter.marker.size = size
+
+        self.scatter.on_click(self.update_point)
+        self.fig.layout.hovermode = "closest"
+
+        self.children = [self.fig]
+
+    def update(self, electrodes, filter_by_units: bool = True, index: int = 0):
+        scatter = self.fig.data[0]
+
+        n_points = len(scatter.marker.color)
+        c = ["#a3a7e4"] * n_points
+        s = [10] * n_points
+        c[index] = "#bae2be"
+        s[index] = 15
+        with self.fig.batch_update():
+            scatter.marker.color = c
+            scatter.marker.size = s
