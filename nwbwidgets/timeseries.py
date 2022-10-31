@@ -1002,6 +1002,11 @@ def trialize_time_series(
     # First dimension is timestamp index second dimension is trial table index
     data_index_within_trials, index_in_trial_table = np.nonzero(timestamps_contained_in_trial)
 
+    # Scrub overlapping consecutive stop/start times
+    unique_data_index_within_trials, unique_index_in_trial_table = np.unique(data_index_within_trials, return_index=True)
+    data_index_within_trials = unique_data_index_within_trials
+    index_in_trial_table = index_in_trial_table[unique_index_in_trial_table]
+    
     # Check efficiency of accessing HDF5 with indexes
     data = time_series.data[data_index_within_trials, index]
     data_df = pd.DataFrame(dict(timestamps=timestamps[data_index_within_trials], data=data))
