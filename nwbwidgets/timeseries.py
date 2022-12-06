@@ -1,16 +1,23 @@
 import functools
 from abc import abstractmethod
 from bisect import bisect
+from typing import Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
+import plotly.graph_objs as go
 import scipy
 from ipywidgets import Layout, fixed, widgets
+from natsort import natsorted
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 from plotly.subplots import make_subplots
-from pynwb import TimeSeries
+from pynwb.base import DynamicTable, TimeSeries
+from pynwb.ecephys import ElectricalSeries
 from pynwb.epoch import TimeIntervals
+from pynwb.ophys import RoiResponseSeries
 
 from .controllers import (
     GroupAndSortController,
@@ -21,6 +28,7 @@ from .controllers import (
 from .controllers.misc import make_trial_event_controller
 from .utils.plotly import multi_trace
 from .utils.timeseries import (
+    bisect_timeseries_by_times,
     get_timeseries_in_units,
     get_timeseries_maxt,
     get_timeseries_mint,
@@ -194,7 +202,12 @@ def show_indexed_timeseries_plotly(
 
 
 def plot_traces(
-    timeseries: TimeSeries, time_window=None, trace_window=None, title: str = None, ylabel: str = "traces", **kwargs
+    timeseries: TimeSeries,
+    time_window=None,
+    trace_window=None,
+    title: str = None,
+    ylabel: str = "traces",
+    **kwargs,
 ):
     """
 
@@ -263,7 +276,10 @@ def show_timeseries(node, **kwargs):
 
 class AbstractTraceWidget(widgets.VBox):
     def __init__(
-        self, timeseries: TimeSeries, foreign_time_window_controller: StartAndDurationController = None, **kwargs
+        self,
+        timeseries: TimeSeries,
+        foreign_time_window_controller: StartAndDurationController = None,
+        **kwargs,
     ):
         super().__init__()
         self.timeseries = timeseries
@@ -299,7 +315,10 @@ class AbstractTraceWidget(widgets.VBox):
 
 class SingleTracePlotlyWidget(AbstractTraceWidget):
     def __init__(
-        self, timeseries: TimeSeries, foreign_time_window_controller: StartAndDurationController = None, **kwargs
+        self,
+        timeseries: TimeSeries,
+        foreign_time_window_controller: StartAndDurationController = None,
+        **kwargs,
     ):
         super().__init__(
             timeseries=timeseries,
@@ -375,7 +394,9 @@ class SeparateTracesPlotlyWidget(AbstractTraceWidget):
                         self.out_fig.data[i].x = tt
                         self.out_fig.data[i].y = dd
                         self.out_fig.update_yaxes(
-                            range=[min(dd), max(dd)] if dd.size != 0 else [None, None], row=i + 1, col=1
+                            range=[min(dd), max(dd)] if dd.size != 0 else [None, None],
+                            row=i + 1,
+                            col=1,
                         )
                         self.out_fig.update_xaxes(range=time_window, row=i + 1, col=1)
 
@@ -496,7 +517,14 @@ def plot_grouped_traces(
 
 
 def plot_grouped_traces_plotly(
-    time_series: TimeSeries, time_window, order, group_inds=None, labels=None, colors=color_wheel, fig=None, **kwargs
+    time_series: TimeSeries,
+    time_window,
+    order,
+    group_inds=None,
+    labels=None,
+    colors=color_wheel,
+    fig=None,
+    **kwargs,
 ):
     mini_data, tt, offsets = _prep_timeseries(time_series, time_window, order)
 
@@ -726,17 +754,30 @@ class AlignMultiTraceTimeSeriesByTrialsAbstract(widgets.VBox):
     def plot_group(self, group_inds, data_trialized, time_trialized, fig, order):
         for group in np.unique(group_inds):
             line_color = color_wheel[group % len(color_wheel)]
-            pb = ProgressBar(np.where(group_inds == group)[0], desc=f"plotting {group} data", leave=False)
+            pb = ProgressBar(
+                np.where(group_inds == group)[0],
+                desc=f"plotting {group} data",
+                leave=False,
+            )
             group_data = []
             group_ts = []
             for i, trim_trial_no in enumerate(pb):
                 trial_idx = order[trim_trial_no]
                 group_data.append(data_trialized[trial_idx])
                 group_ts.append(time_trialized[trial_idx])
-            fig = multi_trace(group_ts, group_data, fig=fig, color=line_color, label=str(group), insert_nans=True)
+            fig = multi_trace(
+                group_ts,
+                group_data,
+                fig=fig,
+                color=line_color,
+                label=str(group),
+                insert_nans=True,
+            )
         tt_flat = np.concatenate(time_trialized)
         fig.update_layout(
-            xaxis_title="time (s)", yaxis_title=self.time_series.name, xaxis_range=(np.min(tt_flat), np.max(tt_flat))
+            xaxis_title="time (s)",
+            yaxis_title=self.time_series.name,
+            xaxis_range=(np.min(tt_flat), np.max(tt_flat)),
         )
         return fig
 
@@ -820,8 +861,19 @@ class AlignMultiTraceTimeSeriesByTrialsConstant(AlignMultiTraceTimeSeriesByTrial
                 if labels is not None:
                     plot_kwargs.update(text=labels[stats["group"]])
                 fig.add_scattergl(x=time_ts_aligned[0], y=stats["lower"], line_color=color)
-                fig.add_scattergl(x=time_ts_aligned[0], y=stats["upper"], line_color=color, fill="tonexty", opacity=0.2)
-                fig.add_scattergl(x=time_ts_aligned[0], y=stats["mean"], line_color=color, **plot_kwargs)
+                fig.add_scattergl(
+                    x=time_ts_aligned[0],
+                    y=stats["upper"],
+                    line_color=color,
+                    fill="tonexty",
+                    opacity=0.2,
+                )
+                fig.add_scattergl(
+                    x=time_ts_aligned[0],
+                    y=stats["mean"],
+                    line_color=color,
+                    **plot_kwargs,
+                )
 
         else:
             fig = self.plot_group(group_inds, data, time_ts_aligned, fig, order)
@@ -890,3 +942,508 @@ class AlignMultiTraceTimeSeriesByTrialsVariable(AlignMultiTraceTimeSeriesByTrial
         fig.data = []
         fig.layout = {}
         return self.plot_group(group_inds, data, time_ts_aligned, fig, order)
+
+
+def trialize_time_series(
+    time_series: TimeSeries,
+    trials_table: Union[DynamicTable, pd.DataFrame],
+    data_column: Optional[int] = 0,
+    start_time_shift: float = 0,
+    duration: float = 1,
+    alignment_column: str = "start_time",
+) -> pd.DataFrame:
+
+    if isinstance(trials_table, DynamicTable):
+        trials_table_df = trials_table.to_dataframe()
+    else:
+        trials_table_df = trials_table
+
+    trials_table_df = trials_table_df.reset_index().rename(columns={"id": "trial"})
+
+    # Map timestamps to the trial interval (start_time, stop_time)
+    timestamps = get_timeseries_tt(node=time_series)
+
+    # Get the left and right bounds of the trials to get data and time
+    values_to_align_array = trials_table_df[alignment_column].to_numpy()
+    trial_left_bound = values_to_align_array + start_time_shift
+    trial_left_bound = trial_left_bound[
+        trial_left_bound <= timestamps.max()
+    ]  # Filter values outside of the time series to avoid extra computation
+    trial_right_bound = trial_left_bound + duration
+
+    trial_left_bound_index = np.searchsorted(timestamps, trial_left_bound)
+    trial_right_bound_index = np.searchsorted(timestamps, trial_right_bound)
+    interval_bounds = zip(trial_left_bound_index, trial_right_bound_index)
+
+    data_list = []
+    timestamps_list = []
+    alignment_column_list = []
+    for trial_index, (idx_start, idx_stop) in enumerate(interval_bounds):
+        trial_data, unit = get_timeseries_in_units(
+            time_series, istart=idx_start, istop=idx_stop, data_column=data_column
+        )
+        data_list.append(trial_data)
+        timestamps_list.append(timestamps[idx_start:idx_stop])
+        alignment_column_list.append([trials_table_df[alignment_column][trial_index]] * (idx_stop - idx_start))
+
+    data_dict = {
+        "data": np.concatenate(data_list),
+        "timestamps": np.concatenate(timestamps_list),
+        f"{alignment_column}": np.concatenate(alignment_column_list),
+    }
+
+    data_df = pd.DataFrame(data_dict)
+
+    data_df_trialized = pd.merge(left=data_df, right=trials_table_df, on=alignment_column, how="left")
+    data_df_trialized["centered_timestamps"] = data_df_trialized.timestamps - data_df_trialized[alignment_column]
+
+    return data_df_trialized
+
+
+def create_empty_figure(text="No data"):
+    empty_figure = go.Figure()
+    empty_figure.update_layout(
+        xaxis={"visible": False},
+        yaxis={"visible": False},
+        annotations=[
+            {
+                "text": f"{text}",
+                "xref": "paper",
+                "yref": "paper",
+                "showarrow": False,
+                "font": {"size": 28},
+            }
+        ],
+    )
+
+    return empty_figure
+
+
+def calculate_moving_average_over_trials(df, moving_average_window):
+
+    df_sort = df.sort_values(by="centered_timestamps")
+    df_sort["moving_average"] = df_sort["data"].rolling(moving_average_window).mean()
+
+    return df_sort
+
+
+def add_moving_average_traces(figure, df, facet_col, facet_row):
+
+    if facet_col is None and facet_row is None:
+        num_trials = df["trial"].unique().size
+        moving_average_window = 2 * num_trials
+        df_sort = calculate_moving_average_over_trials(df, moving_average_window)
+
+        figure.add_scattergl(
+            x=df_sort.centered_timestamps,
+            y=df_sort.moving_average,
+            name="moving_average",
+            line=dict(color="black", width=4),
+        )
+    elif facet_col is not None and facet_row is None:
+
+        col_faceting_values = natsorted(df[facet_col].dropna().unique())
+
+        for col_index, col_face_value in enumerate(col_faceting_values):
+            if isinstance(col_face_value, str):
+                query_string = f"{facet_col}=='{col_face_value}'"
+            else:
+                query_string = f"{facet_col}=={col_face_value}"
+
+            sub_df = df.query(query_string)
+            # Calculate moving average
+            num_trials = sub_df["trial"].unique().size
+            moving_average_window = 2 * num_trials
+
+            moving_average_df = calculate_moving_average_over_trials(sub_df, moving_average_window)
+
+            figure.add_scattergl(
+                x=moving_average_df.centered_timestamps,
+                y=moving_average_df.moving_average,
+                showlegend=False,
+                line=dict(color="black", width=4),
+                row=1,
+                col=col_index + 1,
+            )
+
+    elif facet_col is None and facet_row is not None:
+
+        row_faceting_values = natsorted(df[facet_row].dropna().unique())
+
+        for row_index, row_face_value in enumerate(reversed(row_faceting_values)):
+            if isinstance(row_face_value, str):
+                query_string = f"{facet_row}=='{row_face_value}'"
+            else:
+                query_string = f"{facet_row}=={row_face_value}"
+
+            sub_df = df.query(query_string)
+            # Calculate moving average
+            num_trials = sub_df["trial"].unique().size
+            moving_average_window = 2 * num_trials
+
+            moving_average_df = calculate_moving_average_over_trials(sub_df, moving_average_window)
+
+            figure.add_scattergl(
+                x=moving_average_df.centered_timestamps,
+                y=moving_average_df.moving_average,
+                showlegend=False,
+                line=dict(color="black", width=4),
+                row=row_index + 1,
+                col=1,
+            )
+    else:
+        col_faceting_values = natsorted(df[facet_col].dropna().unique())
+        row_faceting_values = natsorted(df[facet_row].dropna().unique())
+
+        for row_index, row_face_value in enumerate(reversed(row_faceting_values)):
+            for col_index, col_face_value in enumerate(col_faceting_values):
+
+                if isinstance(col_face_value, str):
+                    col_query_string = f"{facet_col}=='{col_face_value}'"
+                else:
+                    col_query_string = f"{facet_col}=={col_face_value}"
+
+                if isinstance(row_face_value, str):
+                    row_query_string = f"{facet_row}=='{row_face_value}'"
+                else:
+                    row_query_string = f"{facet_row}=={row_face_value}"
+
+                query_string = row_query_string + " and " + col_query_string
+
+                sub_df = df.query(query_string)
+                # Calculate moving average
+                num_trials = sub_df["trial"].unique().size
+                moving_average_window = 2 * num_trials
+
+                moving_average_df = calculate_moving_average_over_trials(sub_df, moving_average_window)
+
+                figure.add_scattergl(
+                    x=moving_average_df.centered_timestamps,
+                    y=moving_average_df.moving_average,
+                    showlegend=False,
+                    line=dict(color="black", width=4),
+                    row=row_index + 1,
+                    col=col_index + 1,
+                )
+
+    return figure
+
+
+def build_faceting_figure(df, facet_col, facet_row, data_label="data", trial_label="trial"):
+
+    if df.empty:
+        empty_figure = create_empty_figure()
+        return empty_figure
+
+    # Drop NA values
+    faceting_values = [facet_row, facet_col]
+    faceting_values = [value for value in faceting_values if value is not None]
+    if faceting_values:
+        df = df.dropna(subset=faceting_values)
+
+    # Get the category orders
+    category_orders = dict()
+    if facet_row:
+        row_faceting_values = natsorted(df[facet_row].dropna().unique())
+        category_orders.update({facet_row: row_faceting_values})
+    if facet_col:
+        col_faceting_values = natsorted(df[facet_col].dropna().unique())
+        category_orders.update({facet_col: col_faceting_values})
+
+    # Construct all the traces grouped by trial
+    figure = px.line(
+        df,
+        x="centered_timestamps",
+        y=data_label,
+        color=trial_label,
+        facet_col=facet_col,
+        facet_row=facet_row,
+        category_orders=category_orders,
+    )
+    figure.update_traces(line_color="gray", line_width=1, showlegend=False)
+
+    # Add moving average
+    figure = add_moving_average_traces(figure, df, facet_col=facet_col, facet_row=facet_row)
+
+    # Annotations
+    figure.for_each_xaxis(lambda x: x.update(title=""))
+    figure.for_each_yaxis(lambda y: y.update(title=""))
+    figure.add_annotation(
+        x=-0.165,
+        y=0.5,
+        textangle=270,
+        text=f"{data_label}",
+        xref="paper",
+        yref="paper",
+        showarrow=False,
+    )
+    figure.add_annotation(
+        x=0.5,
+        y=-0.165,
+        text="Centered timestamps (s)",
+        xref="paper",
+        yref="paper",
+        showarrow=False,
+    )
+
+    if facet_row is not None:
+        figure.add_annotation(
+            x=1.075,
+            y=0.5,
+            textangle=90,
+            text=f"{facet_row}",
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+        )
+
+    if facet_col is not None:
+        figure.add_annotation(
+            x=0.5,
+            y=1.15,
+            textangle=0,
+            text=f"{facet_col}",
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+        )
+
+    annotation_list = figure.layout.annotations
+    valid_annotations = (annotation for annotation in annotation_list if "=" in annotation.text)
+    for annotation in valid_annotations:
+        annotation.text = annotation.text.split("=")[1]
+
+    return figure
+
+
+class TrializedTimeSeriesController(widgets.VBox):
+    def __init__(
+        self, time_series: TimeSeries, trials_table: Optional[DynamicTable] = None, column_selection_text="Data col"
+    ):
+        super().__init__()
+
+        self.time_series = time_series
+        self.trials_table = trials_table
+        self.trials_table_df = self.trials_table.to_dataframe()
+
+        # Labels to refer to data created by the widget. Should not collapse with the column names on the dynamic table
+        self.timestamps_label = "timestamps"
+        self.centered_timestamps_label = "centered_timestamps"
+
+        self.available_columns = self.trials_table_df.columns
+
+        invalid_columns = ["start_time", "stop_time"]
+        invalid_columns += [
+            self.timestamps_label,
+            self.centered_timestamps_label,
+        ]
+
+        # Extract ragged columns (can't filter or facet with them)
+        get_indexed_column_name = lambda col: "_".join(col.name.split("_")[:-1])
+        ragged_columns = [get_indexed_column_name(col) for col in self.trials_table.columns if "index" in col.name]
+        invalid_columns += ragged_columns
+
+        self.invalid_columns = invalid_columns
+        self.columns_for_filtering = natsorted(
+            [column for column in self.trials_table_df.columns if column not in self.invalid_columns]
+        )
+
+        self.options_per_column = {
+            column: natsorted(list(self.trials_table_df[column].dropna().unique()))
+            for column in self.columns_for_filtering
+        }
+
+        # Define widgets
+        self.columns_for_filtering.append(None)
+        self.select_filter_columns = widgets.SelectMultiple(
+            options=self.columns_for_filtering,
+            description="Col to filter",
+            value=[None],
+        )
+
+        self.filtering_active = False
+        self.filter_menu = widgets.VBox()
+
+        self.faceting_column_selection = widgets.Dropdown(
+            value=None, options=self.columns_for_filtering, description="col faceting"
+        )
+        self.faceting_row_selection = widgets.Dropdown(
+            value=None, options=self.columns_for_filtering, description="row faceting"
+        )
+
+        data_shape = self.time_series.data.shape
+        dimension_options = list(range(data_shape[1]))
+        self.data_column_selection = widgets.Dropdown(
+            options=dimension_options,
+            description=column_selection_text,
+            description_tooltipw=f"{self.time_series.name} column to plot",
+            value=0,
+        )
+
+        self.column_to_align_to_widget = make_trial_event_controller(trials=self.trials_table)
+        self.start_time_shift_widget = widgets.FloatText(
+            0.0,
+            step=0.1,
+            description="start (s)",
+            layout=Layout(width="200px"),
+            description_tooltip="Start time for calculation before or after (negative or positive) the reference point (aligned to)",
+        )
+
+        self.end_time_widget = widgets.FloatText(
+            1.0,
+            step=0.1,
+            description="end (s)",
+            layout=Layout(width="200px"),
+            description_tooltip="End time for calculation before or after (negative or positive) the reference point (aligned to).",
+        )
+
+        self.match_x_axis_widget = widgets.Checkbox(
+            value=True,
+            description="Lock x-axis across facets",
+            disabled=False,
+            indent=False,
+        )
+
+        self.children = [
+            self.data_column_selection,
+            self.select_filter_columns,
+            self.filter_menu,
+            self.faceting_column_selection,
+            self.faceting_row_selection,
+            self.column_to_align_to_widget,
+            self.start_time_shift_widget,
+            self.end_time_widget,
+            self.match_x_axis_widget,
+        ]
+
+        # Define observers to account for interactions between controls
+        self.select_filter_columns.observe(self.update_filter_menu, names="value")
+        self.select_filter_columns.observe(self.update_row_faceting, names="value")
+        self.select_filter_columns.observe(self.update_column_faceting, names="value")
+
+    def update_filter_menu(self, change):
+        selected_columns = self.select_filter_columns.value
+        if selected_columns != (None,):
+            selection_boxes = [
+                widgets.Dropdown(options=self.options_per_column[column], description=column)
+                for column in selected_columns
+            ]
+            self.filter_menu.children = tuple(selection_boxes)
+            self.filtering_active = True
+            self.filter_menu.layout.visibility = "visible"
+
+        else:
+            self.filtering_active = False
+            self.filter_menu.layout.visibility = "hidden"
+
+    def update_row_faceting(self, change):
+        non_selected_columns = list(set(self.columns_for_filtering).difference(self.select_filter_columns.value))
+
+        self.faceting_row_selection.options = natsorted(list(non_selected_columns))
+        self.faceting_row_selection.value = None
+
+    def update_column_faceting(self, change):
+        non_selected_columns = list(set(self.columns_for_filtering).difference(self.select_filter_columns.value))
+        self.faceting_column_selection.options = natsorted(list(non_selected_columns))
+        self.faceting_column_selection.value = None
+
+
+class TrializedTimeSeries(widgets.HBox):
+    def __init__(
+        self, time_series: TimeSeries, trials_table: Optional[DynamicTable] = None, column_selection_text="Data col"
+    ):
+        super().__init__()
+
+        self.time_series = time_series
+        self.trials_table = trials_table
+
+        # Load references to neurodata types (time_series and trials table)
+        if self.trials_table is None:
+            self.trials_table = time_series.get_ancestor("NWBFile").trials
+
+        if self.trials_table is None:
+            self.children = [widgets.HTML("No trials present")]
+            return
+
+        self.trials_table_df = self.trials_table.to_dataframe()
+
+        # Build controllers
+        self.controller = TrializedTimeSeriesController(
+            time_series=self.time_series, trials_table=self.trials_table, column_selection_text=column_selection_text
+        )
+        self.plot_button = widgets.Button(description="Plot selection!")
+
+        # Build figure widget starting with an empty plot
+        empty_figure = create_empty_figure(text="Select configuration to plot")
+        self.figure_widget = go.FigureWidget(empty_figure)
+
+        # Register plotting button callback
+        self.plot_button.on_click(self.update_plot_widget)
+
+        # Define widget structure
+        self.control = widgets.VBox(
+            [
+                self.controller,
+                self.plot_button,
+            ]
+        )
+        self.children = [self.control, self.figure_widget]
+
+    def query_expresion(self, children):
+        if isinstance(children.value, str):
+            return f" {children.description} == '{children.value}' "
+        else:
+            return f" {children.description} == {children.value} "
+
+    def update_data_state(self):
+
+        if self.controller.filtering_active:
+            query_string = "and".join(
+                [self.query_expresion(children) for children in self.controller.filter_menu.children]
+            )
+            df_query = self.trials_table.to_dataframe().query(query_string)
+        else:
+            df_query = self.trials_table.to_dataframe()
+
+        self.trialized_data_df = trialize_time_series(
+            time_series=self.time_series,
+            trials_table=df_query,
+            start_time_shift=self.controller.start_time_shift_widget.value,
+            duration=(self.controller.end_time_widget.value - self.controller.start_time_shift_widget.value),
+            data_column=self.controller.data_column_selection.value,
+            alignment_column=self.controller.column_to_align_to_widget.value,
+        )
+
+    def update_plot_widget(self, button_instance):
+
+        # Update data
+        self.update_data_state()
+
+        # Generate the plot
+        facet_col = self.controller.faceting_column_selection.value
+        facet_row = self.controller.faceting_row_selection.value
+        figure = build_faceting_figure(df=self.trialized_data_df, facet_col=facet_col, facet_row=facet_row)
+
+        # Update the widget
+        with self.figure_widget.batch_update():
+            self.figure_widget.update(layout_annotations=None)
+            self.figure_widget.update(figure.to_dict(), overwrite=True)
+            matches = "x" if self.controller.match_x_axis_widget.value else None
+            self.figure_widget.update_xaxes(matches=matches)
+
+
+def route_trialized_time_series(time_series: TimeSeries, neurodata_vis_spec=None, **kwargs):
+    """Function to route different type of time series to the appropriate TrializedTimeSeries case
+
+    Args:
+        time_series (TimeSeries): A pynwb.TimeSeries object
+        neurodata_vis_spec (_type_, optional): The general dictionary  that maps neuodatatypes in nwb to specific
+        visualizations.
+    """
+
+    if isinstance(time_series, RoiResponseSeries):
+        return TrializedTimeSeries(time_series=time_series, column_selection_text="ROI")
+    elif isinstance(time_series, ElectricalSeries):
+        return TrializedTimeSeries(time_series=time_series, column_selection_text="Electrode")
+    else:
+        return TrializedTimeSeries(time_series=time_series)

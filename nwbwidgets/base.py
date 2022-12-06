@@ -69,7 +69,7 @@ def show_neurodata_base(node: NWBDataInterface, neurodata_vis_spec: dict) -> wid
             hbox_exp = widgets.HBox(children=[lbl_experimenter, lbl_names])
             info.append(hbox_exp)
         elif (isinstance(value, Iterable) and len(value)) or value:
-            neuro_data.append(view.nwb2widget(value, neurodata_vis_spec=neurodata_vis_spec))
+            neuro_data.append(nwb2widget(value, neurodata_vis_spec=neurodata_vis_spec))
             labels.append(key)
     accordion = widgets.Accordion(children=neuro_data, selected_index=None)
     for i, label in enumerate(labels):
@@ -203,10 +203,13 @@ def nwb2widget(node, neurodata_vis_spec: dict, **pass_kwargs) -> widgets.Widget:
             if isinstance(spec, dict):
                 return lazy_tabs(spec, node)
             elif callable(spec):
-                return vis2widget(spec(node, neurodata_vis_spec=neurodata_vis_spec, **pass_kwargs))
+                visualization = spec(node, neurodata_vis_spec=neurodata_vis_spec, **pass_kwargs)
+                return vis2widget(visualization)
+
     out1 = widgets.Output()
     with out1:
-        print(node)
+        print(node)  # Is this necessary?
+
     return out1
 
 
