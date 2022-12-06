@@ -1,12 +1,12 @@
 import math
 from functools import lru_cache
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
-import numpy as np
 import h5py
+import numpy as np
 
-from .single_plane import SinglePlaneVisualization
 from .ophys_controllers import VolumetricPlaneSliceController
+from .single_plane import SinglePlaneVisualization
 
 
 class PlaneSliceVisualization(SinglePlaneVisualization):
@@ -80,7 +80,12 @@ class PlaneSliceVisualization(SinglePlaneVisualization):
             self.update_data(plane_index=plane_index)
             self.update_data_to_plot()
 
-        super().update_figure(rotation_changed=rotation_changed, frame_index=frame_index, contrast_rescaling=contrast_rescaling, contrast=contrast)
+        super().update_figure(
+            rotation_changed=rotation_changed,
+            frame_index=frame_index,
+            contrast_rescaling=contrast_rescaling,
+            contrast=contrast,
+        )
 
     def set_canvas_title(self):
         self.canvas_title = f"TwoPhotonSeries: {self.two_photon_series.name} - Planar slices of volume"

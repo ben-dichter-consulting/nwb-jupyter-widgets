@@ -1,10 +1,10 @@
 import math
 from functools import lru_cache
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import h5py
-import numpy as np
 import ipywidgets as widgets
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from pynwb.ophys import TwoPhotonSeries

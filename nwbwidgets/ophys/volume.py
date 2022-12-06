@@ -10,14 +10,14 @@ from ..utils.cmaps import linear_transfer_function
 class VolumeVisualization(widgets.VBox):
     def _first_volume_render(self):
         self.Canvas.description = "Loading..."
-        
+
         self.setup_data()
         self.update_data_to_plot()
-        
+
         self.Canvas = widgets.Output()
         self.Canvas.layout.title = self.canvas_title
         self.update_canvas(frame_index=self.Controller.frame_slider.value)
-        
+
         self.children = (self.Canvas, self.Controller)
 
     def __init__(self, two_photon_series: TwoPhotonSeries):
@@ -36,7 +36,7 @@ class VolumeVisualization(widgets.VBox):
 
     def update_data(self, frame_index: Optional[int] = None):
         frame_index = frame_index or self.Controller.frame_slider.value
-        
+
         self.data = self.two_photon_series.data[frame_index, ...]
 
     def setup_data(self):

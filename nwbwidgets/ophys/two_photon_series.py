@@ -1,11 +1,11 @@
 import ipywidgets as widgets
-import plotly.graph_objects as go
 import plotly.express as px
+import plotly.graph_objects as go
 from pynwb.ophys import TwoPhotonSeries
-from tifffile import imread, TiffFile
+from tifffile import TiffFile, imread
 
-from .single_plane import SinglePlaneVisualization
 from .plane_slice import PlaneSliceVisualization
+from .single_plane import SinglePlaneVisualization
 from .volume import VolumeVisualization
 from ..base import LazyTab
 

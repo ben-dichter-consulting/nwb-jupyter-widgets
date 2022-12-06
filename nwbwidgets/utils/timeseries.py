@@ -1,7 +1,6 @@
 from bisect import bisect, bisect_left
 
 import numpy as np
-
 from pynwb import TimeSeries
 
 
@@ -35,10 +34,7 @@ def get_timeseries_tt(node: TimeSeries, istart=0, istop=None) -> np.ndarray:
         elif istop > 0:
             return np.arange(istart, istop) / node.rate + starting_time
         else:
-            return (
-                np.arange(istart, len(node.data) + istop - 1) / node.rate
-                + starting_time
-            )
+            return np.arange(istart, len(node.data) + istop - 1) / node.rate + starting_time
 
 
 def get_timeseries_maxt(node: TimeSeries) -> float:
@@ -140,9 +136,7 @@ def timeseries_time_to_ind(node: TimeSeries, time, ind_min=None, ind_max=None) -
         return id_found if id_found < len(node.data) else len(node.data) - 1
 
 
-def bisect_timeseries_by_times(
-    timeseries: TimeSeries, starts, duration: float, traces=None
-):
+def bisect_timeseries_by_times(timeseries: TimeSeries, starts, duration: float, traces=None):
     """
     Parameters
     ----------
@@ -173,9 +167,7 @@ def bisect_timeseries_by_times(
     return out
 
 
-def align_by_times_with_timestamps(
-    timeseries: TimeSeries, starts, duration: float, traces=None
-):
+def align_by_times_with_timestamps(timeseries: TimeSeries, starts, duration: float, traces=None):
     """
     Parameters
     ----------
@@ -194,9 +186,7 @@ def align_by_times_with_timestamps(
     return bisect_timeseries_by_times(timeseries, starts, duration, traces)
 
 
-def align_by_times_with_rate(
-    timeseries: TimeSeries, starts, duration: float, traces=None
-):
+def align_by_times_with_rate(timeseries: TimeSeries, starts, duration: float, traces=None):
     """
     Parameters
     ----------
@@ -215,9 +205,7 @@ def align_by_times_with_rate(
     return np.array(bisect_timeseries_by_times(timeseries, starts, duration, traces))
 
 
-def align_timestamps_by_trials(
-    timeseries: TimeSeries, starts, before: float, after: float
-):
+def align_timestamps_by_trials(timeseries: TimeSeries, starts, before: float, after: float):
     """
     Parameters
     ----------
@@ -289,10 +277,6 @@ def align_by_time_intervals(
 
     starts = np.array(intervals[start_label][:]) - before
     if timeseries.rate is not None:
-        return align_by_times_with_rate(
-            timeseries, starts, duration=after + before, traces=traces
-        )
+        return align_by_times_with_rate(timeseries, starts, duration=after + before, traces=traces)
     else:
-        return align_by_times_with_timestamps(
-            timeseries, starts, duration=after + before, traces=traces
-        )
+        return align_by_times_with_timestamps(timeseries, starts, duration=after + before, traces=traces)

@@ -2,7 +2,12 @@ from typing import Optional
 
 import ipywidgets as widgets
 
-from ..controllers import RotationController, ImShowController, ViewTypeController, MultiController
+from ..controllers import (
+    ImShowController,
+    MultiController,
+    RotationController,
+    ViewTypeController,
+)
 
 
 class FrameController(widgets.VBox):
