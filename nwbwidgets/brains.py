@@ -1,22 +1,17 @@
-import numpy as np
-
 import ipywidgets as widgets
+import numpy as np
 import plotly.graph_objects as go
-
-from pynwb.base import DynamicTable
-
 import trimesh
+from pynwb.base import DynamicTable
 
 from .base import df_to_hover_text
 
 
-def make_cylinder_mesh(
-    radius, height, sections=32, position=(0, 0, 0), direction=(1, 0, 0), **kwargs
-):
+def make_cylinder_mesh(radius, height, sections=32, position=(0, 0, 0), direction=(1, 0, 0), **kwargs):
     new_normal = direction / np.linalg.norm(direction)
     cosx, cosy = new_normal[:2]
-    sinx = np.sqrt(1 - cosx ** 2)
-    siny = np.sqrt(1 - cosy ** 2)
+    sinx = np.sqrt(1 - cosx**2)
+    siny = np.sqrt(1 - cosy**2)
 
     yaw = [[cosx, -sinx, 0, 0], [sinx, cosx, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
 
@@ -26,9 +21,7 @@ def make_cylinder_mesh(
 
     transform[:3, 3] = position
 
-    cylinder = trimesh.primitives.Cylinder(
-        radius=radius, height=height, sections=sections, transform=transform
-    )
+    cylinder = trimesh.primitives.Cylinder(radius=radius, height=height, sections=sections, transform=transform)
 
     x, y, z = cylinder.vertices.T
     i, j, k = cylinder.faces.T
@@ -36,9 +29,7 @@ def make_cylinder_mesh(
     return go.Mesh3d(x=x, y=y, z=z, i=i, j=j, k=k, **kwargs)
 
 
-def make_cylinders(
-    positions, directions, radius=1, height=1, sections=32, name="cylinders", **kwargs
-):
+def make_cylinders(positions, directions, radius=1, height=1, sections=32, name="cylinders", **kwargs):
 
     return [
         make_cylinder_mesh(
@@ -50,7 +41,7 @@ def make_cylinders(
             showlegend=not i,
             legendgroup=name,
             name=name,
-            **kwargs
+            **kwargs,
         )
         for i, (position, direction) in enumerate(zip(positions, directions))
     ]
@@ -62,17 +53,11 @@ class HumanElectrodesPlotlyWidget(widgets.VBox):
         super().__init__()
         self.electrodes = electrodes
 
-        slider_kwargs = dict(
-            value=1.0, min=0.0, max=1.0, style={"description_width": "initial"}
-        )
+        slider_kwargs = dict(value=1.0, min=0.0, max=1.0, style={"description_width": "initial"})
 
-        left_opacity_slider = widgets.FloatSlider(
-            description="left hemi opacity", **slider_kwargs
-        )
+        left_opacity_slider = widgets.FloatSlider(description="left hemi opacity", **slider_kwargs)
 
-        right_opacity_slider = widgets.FloatSlider(
-            description="right hemi opacity", **slider_kwargs
-        )
+        right_opacity_slider = widgets.FloatSlider(description="right hemi opacity", **slider_kwargs)
 
         color_by_dropdown = widgets.Dropdown(
             options=list(electrodes.colnames),
@@ -95,7 +80,7 @@ class HumanElectrodesPlotlyWidget(widgets.VBox):
     def find_normals(points, k=3):
         normals = []
         for point in points:
-            from skspatial.objects import Points, Plane
+            from skspatial.objects import Plane, Points
 
             distance = np.linalg.norm(points - point, axis=1)
             # closest_inds = np.argpartition(distance, 3)

@@ -1,6 +1,7 @@
 import os
-from setuptools import setup
 from pathlib import Path
+
+from setuptools import setup
 
 root = Path(__file__).parent
 
