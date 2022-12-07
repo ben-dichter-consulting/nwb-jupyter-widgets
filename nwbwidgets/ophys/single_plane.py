@@ -39,7 +39,7 @@ class SinglePlaneVisualization(widgets.VBox):
         self.setup_observers()
 
         # Setup layout of Canvas relative to Controllers
-        self.children = [self.Canvas, self.Controller]
+        self.children = (self.Canvas, self.Controller)
 
     @lru_cache  # default size of 128 items ought to be enough to create a 1GB cache on large images
     def _cache_data_read(self, dataset: h5py.Dataset, frame_index: int, plane_index: int) -> np.ndarray:
@@ -149,6 +149,7 @@ class SinglePlaneVisualization(widgets.VBox):
         frame_index: Optional[int] = None,
         contrast_rescaling: Optional[str] = None,
         contrast: Optional[Tuple[int]] = None,
+        color_mode: Optional[str] = None,
     ):
         if rotation_changed is not None:
             self.update_data_to_plot()
@@ -158,8 +159,9 @@ class SinglePlaneVisualization(widgets.VBox):
 
         contrast_rescaling = contrast_rescaling or self.Controller.auto_contrast_method.value
         contrast = contrast or self.Controller.manual_contrast_slider.value
+        color_mode = color_mode or self.Controller.color_mode_dropdown.value
 
-        img_fig_kwargs = dict(binary_string=True)
+        img_fig_kwargs = dict(color_continuous_scale=color_mode)
         if self.Controller.contrast_type_toggle.value == "Manual":
             img_fig_kwargs.update(zmin=contrast[0], zmax=contrast[1])
         elif self.Controller.contrast_type_toggle.value == "Automatic":
@@ -170,7 +172,19 @@ class SinglePlaneVisualization(widgets.VBox):
 
     def update_canvas(self, **update_figure_kwargs):
         self.update_figure(**update_figure_kwargs)
-        self.Canvas.data[0].update(self.figure.data[0])
+
+        # Adjustments to the color mode only affect the layout of the figure,
+        # which seems to not be updateable at the FigureWidget level...
+        # Solution is simply to regenerate the children when this change occurs.
+        # If anyone can figure out how to adjust the layout properties of a figure
+        # contained in a FigureWidget interactively, please refactor this accordingly.
+        #if "color_mode" in update_figure_kwargs:
+        self.Canvas = go.FigureWidget(self.figure)
+        self.Canvas.layout.title = self.canvas_title
+        self.Canvas.update_xaxes(visible=False, showticklabels=False).update_yaxes(visible=False, showticklabels=False)
+        self.children = (self.Canvas, self.Controller)
+        #else:
+        #    self.Canvas.data[0].update(self.figure.data[0])
 
     def set_canvas_title(self):
         """This can change in child classes."""
@@ -179,10 +193,9 @@ class SinglePlaneVisualization(widgets.VBox):
     def setup_canvas(self):
         # Setup main figure area
         self.update_figure()
-        self.Canvas = go.FigureWidget(self.figure)
+        
         self.set_canvas_title()
-        self.Canvas.layout.title = self.canvas_title
-        self.Canvas.update_xaxes(visible=False, showticklabels=False).update_yaxes(visible=False, showticklabels=False)
+        self.update_canvas()
 
         # Final vizualization-specific setup of controller positions
         # Move the Simplified/Detailed switch to the right part of screen
@@ -200,3 +213,4 @@ class SinglePlaneVisualization(widgets.VBox):
         self.Controller.manual_contrast_slider.observe(
             lambda change: self.update_canvas(contrast=change.new), names="value"
         )
+        self.Controller.color_mode_dropdown.observe(lambda change: self.update_canvas(color_mode=change.new), names="value")

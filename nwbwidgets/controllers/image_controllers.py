@@ -1,4 +1,7 @@
 import ipywidgets as widgets
+import plotly.express as px
+
+from .multicontroller import MultiController
 
 
 class RotationController(widgets.HBox):
@@ -26,11 +29,11 @@ class RotationController(widgets.HBox):
         self.rotate_left.on_click(_rotate_left)
 
 
-class ImShowController(widgets.VBox):
-    """Controller specifically for handling various options for the plot.express.imshow function."""
+class ContrastTypeController(widgets.VBox):
+    """Controller specifically for handling contrastt options for the plotly.express.imshow function."""
 
     controller_fields = ("contrast_type_toggle", "auto_contrast_method", "manual_contrast_slider")
-
+    
     def __init__(self):
         super().__init__()
 
@@ -68,3 +71,31 @@ class ImShowController(widgets.VBox):
             self.children = (self.contrast_type_toggle, self.manual_contrast_slider)
         elif self.contrast_type_toggle.value == "Automatic":
             self.children = (self.contrast_type_toggle, self.auto_contrast_method)
+
+
+class ColorModeController(widgets.VBox):
+    controller_fields = ("color_mode_dropdown", "supported_colors")
+    
+    def __init__(self):
+        super().__init__()
+
+        self.supported_colors = {name.capitalize(): name for name in px.colors.named_colorscales()}
+
+        # Remap name of 'greys' and denote as default
+        # Also setting up the name map and linking it to controller just in case we ever want to customize it more
+        default_color = ("Grayscale (default)", "greys")
+        self.supported_colors.pop(default_color[1].capitalize())
+        self.supported_colors.update({default_color[0]: default_color[1]})
+
+        self.color_mode_dropdown = widgets.Dropdown(options=[(k,v) for k,v in self.supported_colors.items()], value="greys")
+
+        self.children = (self.color_mode_dropdown,)
+        
+
+class ImShowController(MultiController):
+    """Controller specifically for handling various options for the plotly.express.imshow function."""
+
+    controller_fields = ("contrast_type_toggle", "auto_contrast_method", "manual_contrast_slider")
+
+    def __init__(self):
+        super().__init__(components=[ContrastTypeController(), ColorModeController()])
