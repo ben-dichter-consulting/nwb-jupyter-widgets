@@ -178,13 +178,10 @@ class SinglePlaneVisualization(widgets.VBox):
         # Solution is simply to regenerate the children when this change occurs.
         # If anyone can figure out how to adjust the layout properties of a figure
         # contained in a FigureWidget interactively, please refactor this accordingly.
-        #if "color_mode" in update_figure_kwargs:
         self.Canvas = go.FigureWidget(self.figure)
         self.Canvas.layout.title = self.canvas_title
         self.Canvas.update_xaxes(visible=False, showticklabels=False).update_yaxes(visible=False, showticklabels=False)
         self.children = (self.Canvas, self.Controller)
-        #else:
-        #    self.Canvas.data[0].update(self.figure.data[0])
 
     def set_canvas_title(self):
         """This can change in child classes."""
