@@ -160,7 +160,7 @@ class SinglePlaneVisualization(widgets.VBox):
         contrast_rescaling = contrast_rescaling or self.Controller.auto_contrast_method.value
         contrast = contrast or self.Controller.manual_contrast_slider.value
         color_mode = color_mode or self.Controller.color_mode_dropdown.value
-
+        
         img_fig_kwargs = dict(color_continuous_scale=color_mode)
         if self.Controller.contrast_type_toggle.value == "Manual":
             img_fig_kwargs.update(zmin=contrast[0], zmax=contrast[1])
@@ -211,3 +211,7 @@ class SinglePlaneVisualization(widgets.VBox):
             lambda change: self.update_canvas(contrast=change.new), names="value"
         )
         self.Controller.color_mode_dropdown.observe(lambda change: self.update_canvas(color_mode=change.new), names="value")
+        self.Controller.color_mode_reverse_toggle.observe(
+            lambda change: self.update_canvas(color_mode=self.Controller.color_mode_dropdown.value),
+            names="value"
+        )
