@@ -74,7 +74,7 @@ class ContrastTypeController(widgets.VBox):
 
 
 class ColorModeController(widgets.VBox):
-    controller_fields = ("color_mode_dropdown", "supported_colors", "color_mode_reverse_toggle")
+    controller_fields = ("color_mode_dropdown", "supported_colors", "color_mode_reverse_toggle", "color_mode")
     
     def __init__(self):
         super().__init__()
@@ -93,6 +93,7 @@ class ColorModeController(widgets.VBox):
             value="greys",
             layout=dict(width="max-content")
         )
+        self.color_mode = "greys"
         self.color_mode_reverse_toggle = widgets.ToggleButtons(
             options=[
                 ("Normal", "Normal"),
@@ -100,10 +101,16 @@ class ColorModeController(widgets.VBox):
             ],  # Values set to strings for external readability
         )
         
-        # Ran into problems with race conditions with setting up observers for this one
-        # Mostly because simultaneous modifications of options/values of a dropdown
+        self.color_mode_dropdown.observe(lambda change: self.update_color_mode(change.new), names="value")
+        self.color_mode_reverse_toggle.observe(lambda change: self.update_color_mode(change.new), names="value")
         
         self.children = (self.color_mode_dropdown, self.color_mode_reverse_toggle)
+        
+    def update_color_mode(self, change):
+        if self.color_mode_reverse_toggle.value == "Normal":
+            self.color_mode = self.color_mode_dropdown.value
+        elif self.color_mode_reverse_toggle.value == "Reversed":
+            self.color_mode = self.color_mode_dropdown.value + "_r"
 
 
 class ImShowController(MultiController):

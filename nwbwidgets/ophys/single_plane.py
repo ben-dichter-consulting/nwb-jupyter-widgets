@@ -94,6 +94,12 @@ class SinglePlaneVisualization(widgets.VBox):
         if not hasattr(self, "Controller"):  # First time this is called
             return 0
         return self.Controller.components[self.data_controller_name].components["RotationController"].rotation
+    
+    def get_color_mode(self) -> str:
+        """The color_mode attribute of the SinglePlaneDataController cannot be attached in a modifiable state."""
+        if not hasattr(self, "Controller"):  # First time this is called
+            return "greys"
+        return self.Controller.components["ImShowController"].components["ColorModeController"].color_mode
 
     def update_data_to_plot(self):
         rotation = self.get_rotation()
@@ -159,7 +165,7 @@ class SinglePlaneVisualization(widgets.VBox):
 
         contrast_rescaling = contrast_rescaling or self.Controller.auto_contrast_method.value
         contrast = contrast or self.Controller.manual_contrast_slider.value
-        color_mode = color_mode or self.Controller.color_mode_dropdown.value
+        color_mode = color_mode or self.get_color_mode()
         
         img_fig_kwargs = dict(color_continuous_scale=color_mode)
         if self.Controller.contrast_type_toggle.value == "Manual":
@@ -210,8 +216,7 @@ class SinglePlaneVisualization(widgets.VBox):
         self.Controller.manual_contrast_slider.observe(
             lambda change: self.update_canvas(contrast=change.new), names="value"
         )
-        self.Controller.color_mode_dropdown.observe(lambda change: self.update_canvas(color_mode=change.new), names="value")
-        self.Controller.color_mode_reverse_toggle.observe(
-            lambda change: self.update_canvas(color_mode=self.Controller.color_mode_dropdown.value),
-            names="value"
-        )
+        
+        # Rely on upstream controller observers to set the dynamic color mode value
+        self.Controller.color_mode_dropdown.observe(lambda change: self.update_canvas(color_mode=self.get_color_mode()), names="value")
+        self.Controller.color_mode_reverse_toggle.observe(lambda change: self.update_canvas(color_mode=self.get_color_mode()), names="value")
