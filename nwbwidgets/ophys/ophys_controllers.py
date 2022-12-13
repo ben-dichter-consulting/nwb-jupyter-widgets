@@ -74,6 +74,9 @@ class BasePlaneSliceController(MultiController):
         self.manual_contrast_slider.layout.visibility = widget_visibility_type
         self.auto_contrast_method.layout.visibility = widget_visibility_type
 
+        self.color_mode_dropdown.layout.visibility = widget_visibility_type
+        self.color_mode_reverse_toggle.layout.visibility = widget_visibility_type
+
     def update_visibility(self):
         if self.view_type_toggle.value == "Simplified":
             self.set_detailed_visibility(visibile=False)
