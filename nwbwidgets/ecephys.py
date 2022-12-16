@@ -98,7 +98,7 @@ def show_electrodes(electrodes_table):
 
 def show_ccf(electrodes_table=None, **kwargs):
     from ccfwidget import CCFWidget
-    
+
     input_kwargs = {}
     if electrodes_table is not None:
         df = electrodes_table.to_dataframe()
