@@ -50,7 +50,11 @@ class TwoPhotonSeriesVisualization(widgets.VBox):
                 self.children = [self.figure, self.slider]
         else:
             if len(indexed_timeseries.data.shape) == 3:
-                self.children = (SinglePlaneVisualization2(two_photon_series=indexed_timeseries),)
+                self.children = (
+                    SinglePlaneVisualization(
+                        two_photon_series=indexed_timeseries, neurodata_vis_spec=neurodata_vis_spec
+                    ),
+                )
 
             elif len(indexed_timeseries.data.shape) == 4:
                 tab = LazyTab(

@@ -23,7 +23,7 @@ class SinglePlaneVisualization(widgets.VBox):
                 f"use on 3-dimensional TwoPhotonSeries! Detected dimension of {num_dimensions}."
             )
 
-    def __init__(self, two_photon_series: TwoPhotonSeries):
+    def __init__(self, two_photon_series: TwoPhotonSeries, neurodata_vis_spec: dict):
         self.two_photon_series = two_photon_series
         self._dimension_check()
 

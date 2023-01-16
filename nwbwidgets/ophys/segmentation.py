@@ -3,8 +3,8 @@ from functools import lru_cache
 import numpy as np
 from skimage import measure
 import ipywidgets as widgets
-import plotly.graph_objects as go
 import plotly.express as px
+import plotly.graph_objects as go
 from pynwb.base import NWBDataInterface
 from pynwb.ophys import RoiResponseSeries, DfOverF, PlaneSegmentation, ImageSegmentation
 
@@ -13,7 +13,6 @@ from ..timeseries import BaseGroupedTraceWidget
 from ..utils.cmaps import linear_transfer_function
 from ..utils.dynamictable import infer_categorical_columns
 from ..controllers import ProgressBar
-
 
 color_wheel = px.colors.qualitative.Dark24
 

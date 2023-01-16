@@ -1,8 +1,8 @@
 import numpy as np
-
-from ipywidgets import widgets, Layout
-
+from ipywidgets import Layout, widgets
 from tqdm.notebook import tqdm as tqdm_notebook
+
+from .basecontroller import BaseController
 
 
 class ProgressBar(tqdm_notebook):
@@ -11,18 +11,16 @@ class ProgressBar(tqdm_notebook):
         # self.container.children[0].layout = Layout(width="80%")
 
 
-class ViewTypeController(widgets.VBox):
-    controller_fields = ("view_type_toggle",)
-
-    def __init__(self):
-        super().__init__()
-
+class ViewTypeController(BaseController):
+    def setup_components(self):
         self.view_type_toggle = widgets.ToggleButtons(
             options=[
                 ("Simplified", "Simplified"),
                 ("Detailed", "Detailed"),
             ],  # Values set to strings for external readability
         )
+
+    def setup_children(self):
         self.children = (self.view_type_toggle,)
 
 
