@@ -1,17 +1,14 @@
-from typing import Optional
+"""A collection of frequently reused controllers for the ophys module."""
+from typing import Optional, Dict, Union
 
-import ipywidgets as widgets
+import ipywidgets
 
-from ..controllers import RotationController, ImShowController, ViewTypeController, MultiController
+from ..controllers import BaseController, MultiController, RotationController, ImShowController, ViewTypeController
 
 
-class FrameController(widgets.VBox):
-    controller_fields = ("frame_slider",)
-
-    def __init__(self):
-        super().__init__()
-
-        self.frame_slider = widgets.IntSlider(
+class FrameController(BaseController):
+    def setup_attributes(self):
+        self.frame_slider = ipywidgets.IntSlider(
             value=0,  # Actual value will depend on data selection
             min=0,  # Actual value will depend on data selection
             max=1,  # Actual value will depend on data selection
@@ -20,16 +17,13 @@ class FrameController(widgets.VBox):
             continuous_update=False,
         )
 
+    def setup_children(self):
         self.children = (self.frame_slider,)
 
 
-class PlaneController(widgets.VBox):
-    controller_fields = ("plane_slider",)
-
-    def __init__(self):
-        super().__init__()
-
-        self.plane_slider = widgets.IntSlider(
+class PlaneController(BaseController):
+    def setup_attributes(self):
+        self.plane_slider = ipywidgets.IntSlider(
             value=0,  # Actual value will depend on data selection
             min=0,  # Actual value will depend on data selection
             max=1,  # Actual value will depend on data selection
@@ -38,15 +32,16 @@ class PlaneController(widgets.VBox):
             continuous_update=False,
         )
 
+    def setup_children(self):
         self.children = (self.plane_slider,)
 
 
 class SinglePlaneDataController(MultiController):
-    def __init__(self, components: Optional[list] = None):
-        default_components = [RotationController(), FrameController()]
-        if components is not None:
-            default_components.extend(components)
-        super().__init__(components=default_components)
+    def __init__(self, attributes: Optional[Dict[str, Union[BaseController, ipywidgets.Widget]]] = None):
+        default_attributes = dict(rotation_controller=RotationController(), frame_controller=FrameController())
+        if attributes is not None:
+            default_attributes.update(attributes)
+        super().__init__(attributes=default_attributes)
 
         # Align rotation buttons to center of sliders
         self.layout.align_items = "center"
@@ -54,15 +49,15 @@ class SinglePlaneDataController(MultiController):
 
 class VolumetricDataController(SinglePlaneDataController):
     def __init__(self):
-        super().__init__(components=[PlaneController()])
+        super().__init__(attributes=dict(plane_controller=PlaneController()))
 
 
 class BasePlaneSliceController(MultiController):
-    def __init__(self, components: Optional[list] = None):
-        default_components = [ViewTypeController(), ImShowController()]
-        if components is not None:
-            default_components.extend(components)
-        super().__init__(components=default_components)
+    def __init__(self, attributes: Optional[Dict[str, Union[BaseController, ipywidgets.Widget]]] = None):
+        default_attributes = dict(view_type_controller=ViewTypeController(), imshow_controller=ImShowController())
+        if attributes is not None:
+            default_attributes.extend(attributes)
+        super().__init__(attributes=default_attributes)
 
         self.setup_visibility()
         self.setup_observers()
@@ -89,9 +84,9 @@ class BasePlaneSliceController(MultiController):
 
 class SinglePlaneSliceController(BasePlaneSliceController):
     def __init__(self):
-        super().__init__(components=[SinglePlaneDataController()])
+        super().__init__(attributes=dict(single_plane_data_controller=SinglePlaneDataController()))
 
 
 class VolumetricPlaneSliceController(BasePlaneSliceController):
     def __init__(self):
-        super().__init__(components=[VolumetricDataController()])
+        super().__init__(attributes=dict(volumetric_data_controller=VolumetricDataController()))

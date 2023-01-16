@@ -12,7 +12,7 @@ class ProgressBar(tqdm_notebook):
 
 
 class ViewTypeController(BaseController):
-    def setup_components(self):
+    def setup_attributes(self):
         self.view_type_toggle = widgets.ToggleButtons(
             options=[
                 ("Simplified", "Simplified"),
