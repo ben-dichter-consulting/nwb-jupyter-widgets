@@ -32,6 +32,7 @@ setup(
     "NWB-file in Jupyter Notebooks using ipywidgets.",
     install_requires=requirements,
     extras_require={
+        "dandi": ["ipywidgets>=8.0.4"],
         "human_electrodes": ["nilearn", "trimesh"],
         "mouse_electrodes": ["ccfwidget", "aiohttp"],
         "full": ["ccfwidget", "aiohttp", "nilearn", "trimesh"],
